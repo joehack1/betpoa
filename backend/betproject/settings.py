@@ -13,6 +13,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'api',
+    
 ]
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -23,6 +24,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    
 ]
 ROOT_URLCONF = 'betproject.urls'
 TEMPLATES = [{
@@ -51,3 +53,4 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 }
+
