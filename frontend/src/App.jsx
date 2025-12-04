@@ -28,6 +28,10 @@ function App() {
 
 	const isAuthenticated = !!localStorage.getItem('access')
 
+	// Hide nav on the login screen even when authenticated
+	const pathname = typeof window !== 'undefined' ? window.location.pathname : '/'
+	const showNav = isAuthenticated && pathname !== '/login' && pathname !== '/'
+
 	const RequireAuth = ({ children }) => {
 		return isAuthenticated ? children : <Navigate to="/login" replace />
 	}
@@ -40,8 +44,8 @@ return (
 			))}
 		</div>
 
-	{isAuthenticated && (
-		<div style={{display:'flex', gap:12, alignItems:'center', marginBottom:16}}>
+	{showNav && (
+		<div className="top-nav" style={{display:'flex', gap:12, alignItems:'center', marginBottom:16}}>
 			<nav style={{display:'flex', gap:8}}>
 				<Link className="nav-link" to="/dashboard">Dashboard</Link>
 				<Link className="nav-link" to="/matches">Matches</Link>
