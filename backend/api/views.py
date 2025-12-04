@@ -257,3 +257,16 @@ def register(request):
 
 	refresh = RefreshToken.for_user(user)
 	return Response({'refresh': str(refresh), 'access': str(refresh.access_token)})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def me(request):
+	"""Return current user info and wallet balance."""
+	user = request.user
+	try:
+		wallet = Wallet.objects.get(user=user)
+		coins = wallet.coins
+	except Exception:
+		coins = 0
+	return Response({'username': user.username, 'email': user.email, 'coins': coins})

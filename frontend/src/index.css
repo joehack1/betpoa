@@ -13,6 +13,16 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Light mode override when body has class 'light' */
+body.light {
+  --bg: #ffffff;
+  --card: #f6f7fb;
+  --muted: #556677;
+  --accent: #ff7a00;
+  color: #213547;
+  background-color: #ffffff;
+}
+
 a {
   font-weight: 500;
   color: #646cff;

@@ -24,7 +24,8 @@ export default function Login() {
       const res = await API.post('token/', { username, password })
       localStorage.setItem('access', res.data.access)
       localStorage.setItem('refresh', res.data.refresh)
-      navigate('/matches')
+      // navigate to dashboard after login
+      navigate('/dashboard')
     } catch (err) {
       const resp = err.response && err.response.data ? JSON.stringify(err.response.data) : null
       setError(resp || err.response?.statusText || err.message || 'Login failed')

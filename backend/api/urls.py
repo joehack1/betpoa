@@ -1,7 +1,7 @@
 
 from django.urls import path
 from .views import MatchList, BetCreate, MyBets, wallet_view, set_result
-from .views import openliga_matches, register
+from .views import openliga_matches, register, me
 
 
 urlpatterns = [
@@ -12,4 +12,5 @@ path('wallet/', wallet_view),
 path('admin/set_result/<int:pk>/', set_result),
 path('openliga/<str:league>/<str:season>/', openliga_matches),
 path('register/', register),
+path('me/', me),
 ]
