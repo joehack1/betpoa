@@ -26,7 +26,8 @@ export default function Login() {
       localStorage.setItem('refresh', res.data.refresh)
       navigate('/matches')
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || 'Login failed')
+      const resp = err.response && err.response.data ? JSON.stringify(err.response.data) : null
+      setError(resp || err.response?.statusText || err.message || 'Login failed')
     } finally {
       setLoading(false)
     }

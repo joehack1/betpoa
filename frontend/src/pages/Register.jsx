@@ -20,7 +20,8 @@ export default function Register() {
       localStorage.setItem('refresh', res.data.refresh)
       navigate('/matches')
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Registration failed')
+      const resp = err.response && err.response.data ? JSON.stringify(err.response.data) : null
+      setError(resp || err.response?.statusText || err.message || 'Registration failed')
     } finally {
       setLoading(false)
     }

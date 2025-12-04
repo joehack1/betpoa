@@ -71,27 +71,153 @@ def set_result(request, pk):
 	return Response({'status': 'ok'})
 
 
-# Proxy endpoint to fetch matches from OpenLigaDB
-# Example: GET /api/openliga/bl1/2021/  -> fetches https://www.openligadb.de/api/getmatchdata/bl1/2021
+# Proxy endpoint to fetch fixtures from TheSportsDB
 @api_view(['GET'])
 def openliga_matches(request, league, season):
-	base = 'https://www.openligadb.de/api/'
-	# Construct target endpoint. We only support getmatchdata for now.
-	target = f"{base}getmatchdata/{league}/{season}"
+	"""
+	Fetch fixtures from TheSportsDB (https://www.thesportsdb.com/api/v1/json/3/).
+	- For current/future matches we use `eventsnextleague.php?id=LEAGUE_ID`.
+	- For historical season data we try `eventsseason.php?id=LEAGUE_ID&s=SEASON`.
+
+	The `league` param can be either a short code (e.g. 'bl1') or a numeric
+	TheSportsDB `idLeague`. If short code is passed we use a small mapping.
+	"""
+	from datetime import datetime
+
+	base = 'https://www.thesportsdb.com/api/v1/json/3/'
+
+	# Helper: resolve a league parameter to a list of TheSportsDB league ids
+	def resolve_league_ids(param):
+		# numeric id -> return directly
+		try:
+			lid = int(param)
+			return [lid]
+		except Exception:
+			pass
+
+		# small short-code map for convenience
+		league_map = {
+			'bl1': 4331,  # Bundesliga
+			'bl2': 4399,  # 2. Bundesliga
+			'pl': 4328,   # Premier League
+			'la': 4335,   # La Liga
+			'sa': 4332,   # Serie A
+			'fr': 4334,   # Ligue 1
+		}
+		if param in league_map:
+			return [league_map[param]]
+
+		# special value 'all' -> return all soccer leagues from TheSportsDB
+		if param == 'all':
+			try:
+				all_url = f"{base}all_leagues.php"
+				r = requests.get(all_url, timeout=15)
+				r.raise_for_status()
+				j = r.json()
+			except Exception:
+				# fallback: try search_all_leagues for Germany (best-effort)
+				try:
+					r = requests.get(f"{base}search_all_leagues.php?c=Germany", timeout=10)
+					r.raise_for_status()
+					j = r.json()
+				except Exception:
+					return []
+
+			leagues = j.get('leagues') or j.get('countries') or []
+			ids = []
+			for L in leagues:
+				if (L.get('strSport') or '').lower() == 'soccer':
+					try:
+						ids.append(int(L.get('idLeague')))
+					except Exception:
+						continue
+			return ids
+
+		# otherwise, do a fuzzy search across all leagues: fetch list and match substring
+		try:
+			r = requests.get(f"{base}all_leagues.php", timeout=15)
+			r.raise_for_status()
+			j = r.json()
+			leagues = j.get('leagues') or j.get('countries') or []
+		except Exception:
+			leagues = []
+
+		matches = []
+		key = param.lower()
+		for L in leagues:
+			name = (L.get('strLeague') or '').lower()
+			idapi = (L.get('idAPIfootball') or '')
+			if key in name or key == str(L.get('idLeague')) or key == str(idapi):
+				try:
+					matches.append(int(L.get('idLeague')))
+				except Exception:
+					continue
+		return matches
+
+	# resolve league(s)
+	league_ids = resolve_league_ids(league)
+	if not league_ids:
+		return Response({'error': f'unsupported or unknown league: {league}. Try an exact league name, short code, or TheSportsDB id.'}, status=400)
+
+	# parse season/year param
 	try:
-		resp = requests.get(target, timeout=10)
-	except requests.RequestException as e:
-		return Response({'error': 'failed to fetch from OpenLigaDB', 'details': str(e)}, status=502)
+		season_year = int(season)
+	except Exception:
+		season_year = None
 
-	if resp.status_code != 200:
-		return Response({'error': 'upstream returned error', 'status_code': resp.status_code}, status=resp.status_code)
+	now = datetime.now()
+	aggregated = []
+	seen = set()
 
+	# if asking for matches from December 2025 onward, create a start filter
+	start_filter = None
 	try:
-		data = resp.json()
-	except ValueError:
-		return Response({'error': 'invalid json from upstream'}, status=502)
+		if season_year and season_year >= 2025:
+			start_filter = datetime(season_year, 12, 1)
+	except Exception:
+		start_filter = None
 
-	return Response(data)
+	for lid in league_ids:
+		# pick endpoint
+		if season_year is None or season_year >= now.year:
+			endpoint = f"{base}eventsnextleague.php"
+			params = {'id': lid}
+		else:
+			season_str = f"{season}-{int(season) + 1}"
+			endpoint = f"{base}eventsseason.php"
+			params = {'id': lid, 's': season_str}
+
+		try:
+			r = requests.get(endpoint, params=params, timeout=10)
+			if r.status_code != 200:
+				continue
+			dj = r.json()
+		except Exception:
+			continue
+
+		events = dj.get('events') or []
+		for ev in events:
+			# filter by date if requested
+			if start_filter:
+				date_str = ev.get('dateEvent') or ev.get('strTimestamp')
+				try:
+					ev_date = datetime.fromisoformat(date_str)
+				except Exception:
+					try:
+						ev_date = datetime.strptime(date_str, '%Y-%m-%d')
+					except Exception:
+						ev_date = None
+				if ev_date and ev_date < start_filter:
+					continue
+
+			eid = ev.get('idEvent') or ev.get('id')
+			if eid and eid in seen:
+				continue
+			if eid:
+				seen.add(eid)
+			aggregated.append(ev)
+
+	return Response({'response': aggregated, 'source': 'thesportsdb'})
 
 
 
