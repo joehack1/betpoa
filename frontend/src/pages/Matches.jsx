@@ -14,19 +14,25 @@ export default function Matches() {
       setLoading(true)
       setError(null)
       try {
-        // Fetch current/future matches (2025 onwards uses date-based filtering)
-        const res = await API.get('openliga/bl1/2025/')
+        // Fetch aggregated events from TheSportsDB via backend proxy.
+        const res = await API.get('openliga/all/2025/')
         if (!mounted) return
-        // API-Football returns { response: [...fixtures] }
-        const fixtures = res.data.response || res.data || []
-        // Filter to only show matches from today onwards
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-        const upcomingMatches = fixtures.filter(m => {
-          const matchDate = new Date(m.fixture?.date)
-          return matchDate >= today
+        // The backend returns { response: [ ...events ] }
+        const events = res.data.response || []
+
+        // Filter events to start from 2025-12-01 onward
+        const startDate = new Date(2025, 11, 1) // Dec 1, 2025 (month is 0-based)
+        const filtered = events.filter(ev => {
+          // prefer ISO timestamp, otherwise combine dateEvent + strTime
+          let dt = null
+          if (ev.strTimestamp) dt = new Date(ev.strTimestamp)
+          else if (ev.dateEvent && ev.strTime) dt = new Date(`${ev.dateEvent}T${ev.strTime}`)
+          else if (ev.dateEvent) dt = new Date(ev.dateEvent)
+          if (!dt || isNaN(dt)) return false
+          return dt >= startDate
         })
-        setMatches(upcomingMatches)
+
+        setMatches(filtered)
       } catch (err) {
         setError(err.message || 'Failed to load matches')
       } finally {
@@ -94,79 +100,76 @@ export default function Matches() {
               <p>No matches found.</p>
             </div>
           ) : (
-            matches.map((m) => (
-              <div key={m.fixture?.id || m.id} className="match-card">
-                <div className="match-header">
-                  <div className="match-round">
-                    {m.league?.round || 'Round'}
-                  </div>
-                  <div 
-                    className="match-status" 
-                    style={{ backgroundColor: getStatusColor(m.fixture?.status?.short) }}
-                  >
-                    {getStatusText(m.fixture?.status?.short)}
-                  </div>
-                </div>
+            matches.map((m) => {
+              const key = m.idEvent || m.id || Math.random()
+              // build datetime
+              let dt = null
+              if (m.strTimestamp) dt = new Date(m.strTimestamp)
+              else if (m.dateEvent && m.strTime) dt = new Date(`${m.dateEvent}T${m.strTime}`)
+              else if (m.dateEvent) dt = new Date(m.dateEvent)
 
-                <div className="match-teams">
-                  <div className="team home-team">
-                    <img 
-                      src={m.teams?.home?.logo} 
-                      alt={m.teams?.home?.name} 
-                      className="team-logo"
-                      onError={(e) => e.target.style.display = 'none'}
-                    />
-                    <span className="team-name">{m.teams?.home?.name}</span>
-                  </div>
-
-                  <div className="match-score">
-                    <span className="score-number">{m.goals?.home}</span>
-                    <span className="score-separator">:</span>
-                    <span className="score-number">{m.goals?.away}</span>
-                  </div>
-
-                  <div className="team away-team">
-                    <span className="team-name">{m.teams?.away?.name}</span>
-                    <img 
-                      src={m.teams?.away?.logo} 
-                      alt={m.teams?.away?.name} 
-                      className="team-logo"
-                      onError={(e) => e.target.style.display = 'none'}
-                    />
-                  </div>
-                </div>
-
-                <div className="match-details">
-                  <div className="detail-item">
-                    <span className="detail-label">📅 Date</span>
-                    <span className="detail-value">
-                      {new Date(m.fixture?.date).toLocaleDateString('en-US', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                    </span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">⏰ Time</span>
-                    <span className="detail-value">
-                      {new Date(m.fixture?.date).toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
-                  </div>
-                  {m.fixture?.venue?.name && (
-                    <div className="detail-item">
-                      <span className="detail-label">🏟️ Venue</span>
-                      <span className="detail-value">{m.fixture.venue.name}</span>
+              return (
+                <div key={key} className="match-card">
+                  <div className="match-header">
+                    <div className="match-round">
+                      {m.strRound || m.intRound || 'Round'}
                     </div>
-                  )}
-                </div>
+                    <div className="match-status" style={{ backgroundColor: getStatusColor(m.strStatus) }}>
+                      {m.strStatus || 'Not Started'}
+                    </div>
+                  </div>
 
-                <button className="bet-button">Place Bet</button>
-              </div>
-            ))
+                  <div className="match-teams">
+                    <div className="team home-team">
+                      {m.strHomeTeamBadge && (
+                        <img src={m.strHomeTeamBadge} alt={m.strHomeTeam} className="team-logo" onError={(e) => e.target.style.display = 'none'} />
+                      )}
+                      <span className="team-name">{m.strHomeTeam}</span>
+                    </div>
+
+                    <div className="match-score">
+                      <span className="score-number">{m.intHomeScore ?? '-'}</span>
+                      <span className="score-separator">:</span>
+                      <span className="score-number">{m.intAwayScore ?? '-'}</span>
+                    </div>
+
+                    <div className="team away-team">
+                      <span className="team-name">{m.strAwayTeam}</span>
+                      {m.strAwayTeamBadge && (
+                        <img src={m.strAwayTeamBadge} alt={m.strAwayTeam} className="team-logo" onError={(e) => e.target.style.display = 'none'} />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="match-details">
+                    <div className="detail-item">
+                      <span className="detail-label">📅 Date</span>
+                      <span className="detail-value">
+                        {dt ? dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : m.dateEvent}
+                      </span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">⏰ Time</span>
+                      <span className="detail-value">{dt ? dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : (m.strTime || '-')}</span>
+                    </div>
+                    {m.strVenue && (
+                      <div className="detail-item">
+                        <span className="detail-label">🏟️ Venue</span>
+                        <span className="detail-value">{m.strVenue}</span>
+                      </div>
+                    )}
+                    {m.strLeague && (
+                      <div className="detail-item">
+                        <span className="detail-label">🏷️ League</span>
+                        <span className="detail-value">{m.strLeague}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <button className="bet-button">Place Bet</button>
+                </div>
+              )
+            })
           )}
         </div>
       )}

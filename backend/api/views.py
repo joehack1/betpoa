@@ -10,6 +10,7 @@ from django.conf import settings
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
+from django.core.cache import cache
 
 
 class MatchList(generics.ListAPIView):
@@ -169,6 +170,12 @@ def openliga_matches(request, league, season):
 	aggregated = []
 	seen = set()
 
+	# Try cache first (cache key includes league param and season)
+	cache_key = f"thesportsdb:{league}:{season}"
+	cached = cache.get(cache_key)
+	if cached is not None:
+		return Response(cached)
+
 	# if asking for matches from December 2025 onward, create a start filter
 	start_filter = None
 	try:
@@ -217,7 +224,13 @@ def openliga_matches(request, league, season):
 				seen.add(eid)
 			aggregated.append(ev)
 
-	return Response({'response': aggregated, 'source': 'thesportsdb'})
+	result = {'response': aggregated, 'source': 'thesportsdb'}
+	# store in cache for short TTL (5 minutes)
+	try:
+		cache.set(cache_key, result, 300)
+	except Exception:
+		pass
+	return Response(result)
 
 
 
