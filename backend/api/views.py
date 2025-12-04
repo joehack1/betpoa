@@ -1,5 +1,5 @@
 from rest_framework import generics, permissions
-from .models import Match, Bet, Wallet
+from .models import Match, Bet, Wallet, Transaction
 from .serializers import MatchSerializer, BetSerializer, WalletSerializer, UserSerializer
 from rest_framework.response import Response
 from django.contrib.auth.models import User
