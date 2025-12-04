@@ -68,7 +68,7 @@ export default function Matches() {
   return (
     <div className="matches-container">
       <div className="matches-header">
-        <h1>⚽ Bundesliga Live & Upcoming</h1>
+        <h1>⚽ Live & Upcoming — All Leagues</h1>
         <p className="matches-subtitle">Current and future matches • Place your bets now</p>
       </div>
 
