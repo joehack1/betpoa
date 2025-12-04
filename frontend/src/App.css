@@ -35,6 +35,9 @@
 
 .card {
   padding: 2em;
+  margin: 0 auto;
+  width: calc(100% - 2rem);
+  max-width: 980px;
 }
 
 .read-the-docs {
@@ -57,10 +60,13 @@ body {
 }
 
 /* App content sits above decorative background */
-.app-content{ position:relative; z-index:2 }
+.app-content{ position:relative; z-index:2; display:flex; flex-direction:column; align-items:center; min-height:100vh }
 
-/* Ensure top navigation sits above decorative background */
-.top-nav{ position:relative; z-index:3 }
+/* Ensure top navigation sits above decorative background and is centered */
+.top-nav{ position:relative; z-index:3; width:100%; max-width:1280px; margin:0 auto 16px; padding:0 1rem; box-sizing:border-box; display:flex; align-items:center }
+
+/* Page inner container to align page contents */
+.page-inner{ width:100%; max-width:1280px; padding:0 1rem; box-sizing:border-box; margin:0 auto }
 
 /* Hexagon animated background */
 .hex-bg{
@@ -125,6 +131,15 @@ body {
   padding: 2rem;
   box-shadow: 0 8px 30px rgba(0,0,0,0.6);
 }
+.login-card{
+  background: var(--card);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 420px;
+  padding: 2rem;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+  margin: 0 auto;
+}
 
 .brand{
   font-size: 1.75rem;
@@ -184,8 +199,8 @@ body {
 .register-row{display:flex; justify-content:space-between; align-items:center; margin-top:12px; color:var(--muted)}
 .register-row a{color:var(--accent); text-decoration:none}
 
-.nav-link{ color:var(--muted); padding:6px 10px; border-radius:8px; text-decoration:none }
-.nav-link:hover{ background: rgba(255,122,0,0.08); color:var(--accent); }
+.nav-link{ color:var(--muted); padding:8px 12px; border-radius:8px; text-decoration:none; transition: all 0.3s ease; border: 1px solid transparent; }
+.nav-link:hover{ background: var(--accent); color:var(--accent-contrast); border-color: var(--accent); transform: translateY(-1px); box-shadow: 0 4px 8px rgba(255,122,0,0.3); }
 
 /* Primary button (orange) */
 .primary{
@@ -203,3 +218,6 @@ body {
 
 ul{list-style:none; padding:0}
 li{margin:12px 0; padding:12px; background:#0f0f0f; border-radius:8px; text-align:left}
+
+/* Utility for centering blocks */
+.center-block{ margin-left:auto; margin-right:auto }
