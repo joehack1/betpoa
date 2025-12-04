@@ -3,6 +3,12 @@ import { ScaleLoader } from 'react-spinners'
 import API from '../api'
 import '../styles/Matches.css'
 
+const mockOdds = {
+  home: 2.10,
+  draw: 3.20,
+  away: 2.50
+}
+
 export default function Matches() {
   const [matches, setMatches] = useState([])
   const [loading, setLoading] = useState(true)
@@ -63,6 +69,33 @@ export default function Matches() {
       'ABD': 'Abandoned',
     }
     return statusMap[status] || status
+  }
+
+  const placeBet = async (match, choice) => {
+    const amount = prompt(`Enter bet amount for ${choice} (coins):`)
+    if (!amount || isNaN(amount) || amount <= 0) return
+
+    try {
+      // Create match if not exists (simplified)
+      const matchData = {
+        home: match.strHomeTeam,
+        away: match.strAwayTeam,
+        start_time: match.strTimestamp || `${match.dateEvent}T${match.strTime}`,
+        sport: 'football'
+      }
+      // Assume match creation endpoint or use existing
+      const res = await API.post('matches/', matchData)
+      const matchId = res.data.id
+
+      await API.post('bets/', {
+        match_id: matchId,
+        amount: parseInt(amount),
+        choice
+      })
+      alert('Bet placed successfully!')
+    } catch (err) {
+      alert('Failed to place bet: ' + err.message)
+    }
   }
 
   return (
@@ -166,7 +199,17 @@ export default function Matches() {
                     )}
                   </div>
 
-                  <button className="bet-button">Place Bet</button>
+                  <div style={{display: 'flex', gap: '10px', justifyContent: 'center'}}>
+                    <button className="bet-button" onClick={() => placeBet(m, 'home')}>
+                      Home<br/>{mockOdds.home}
+                    </button>
+                    <button className="bet-button" onClick={() => placeBet(m, 'draw')}>
+                      Draw<br/>{mockOdds.draw}
+                    </button>
+                    <button className="bet-button" onClick={() => placeBet(m, 'away')}>
+                      Away<br/>{mockOdds.away}
+                    </button>
+                  </div>
                 </div>
               )
             })

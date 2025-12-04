@@ -10,6 +10,9 @@ class Match(models.Model):
 	finished = models.BooleanField(default=False)
 	result = models.CharField(max_length=50, blank=True) # e.g. 'home', 'away', 'draw'
 	sport = models.CharField(max_length=20, choices=SPORT_CHOICES, default='football')
+	home_odds = models.DecimalField(max_digits=5, decimal_places=2, default=2.00)
+	draw_odds = models.DecimalField(max_digits=5, decimal_places=2, default=3.00)
+	away_odds = models.DecimalField(max_digits=5, decimal_places=2, default=2.00)
 
 
 	def __str__(self):
