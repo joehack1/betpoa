@@ -26,6 +26,41 @@ export default function Profile(){
     return ()=>{ mounted=false }
   },[])
 
+  async function handleDeposit(e) {
+    e.preventDefault()
+    setProcessing(true)
+    try {
+      await API.post('mpesa/deposit/', { amount: depositAmount, phone_number: phoneNumber })
+      alert('Deposit initiated. Check your M-Pesa for confirmation.')
+      setDepositAmount('')
+      setPhoneNumber('')
+      // Reload transactions
+      const txRes = await API.get('mpesa/transactions/')
+      setTransactions(txRes.data)
+    } catch (error) {
+      alert('Deposit failed: ' + (error.response?.data?.error || 'Unknown error'))
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  async function handleWithdraw(e) {
+    e.preventDefault()
+    setProcessing(true)
+    try {
+      await API.post('mpesa/withdraw/', { amount: withdrawAmount })
+      alert('Withdrawal initiated.')
+      setWithdrawAmount('')
+      // Reload transactions
+      const txRes = await API.get('mpesa/transactions/')
+      setTransactions(txRes.data)
+    } catch (error) {
+      alert('Withdrawal failed: ' + (error.response?.data?.error || 'Unknown error'))
+    } finally {
+      setProcessing(false)
+    }
+  }
+
   if(loading) return <div className="matches-container"><p>Loading profile…</p></div>
 
   return (

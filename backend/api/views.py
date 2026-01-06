@@ -270,3 +270,53 @@ def me(request):
 	except Exception:
 		coins = 0
 	return Response({'username': user.username, 'email': user.email, 'coins': coins})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mpesa_deposit(request):
+	amount = request.data.get('amount')
+	phone_number = request.data.get('phone_number')
+	if not amount or not phone_number:
+		return Response({'error': 'Amount and phone number required'}, status=400)
+	# Create transaction record
+	transaction = Transaction.objects.create(
+		user=request.user,
+		transaction_type='deposit',
+		amount=amount,
+		phone_number=phone_number,
+		status='pending'
+	)
+	# TODO: Integrate with actual M-Pesa API
+	return Response({'message': 'Deposit initiated', 'transaction_id': transaction.id})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mpesa_withdraw(request):
+	amount = request.data.get('amount')
+	if not amount:
+		return Response({'error': 'Amount required'}, status=400)
+	wallet = Wallet.objects.get(user=request.user)
+	if wallet.coins < int(amount):
+		return Response({'error': 'Insufficient balance'}, status=400)
+	# Deduct coins immediately
+	wallet.coins -= int(amount)
+	wallet.save()
+	# Create transaction record
+	transaction = Transaction.objects.create(
+		user=request.user,
+		transaction_type='withdrawal',
+		amount=amount,
+		status='pending'
+	)
+	# TODO: Integrate with actual M-Pesa API
+	return Response({'message': 'Withdrawal initiated', 'transaction_id': transaction.id})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def mpesa_transactions(request):
+	transactions = Transaction.objects.filter(user=request.user).order_by('-created_at')
+	serializer = TransactionSerializer(transactions, many=True)
+	return Response(serializer.data)

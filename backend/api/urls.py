@@ -13,4 +13,7 @@ path('admin/set_result/<int:pk>/', set_result),
 path('openliga/<str:league>/<str:season>/', openliga_matches),
 path('register/', register),
 path('me/', me),
+path('mpesa/deposit/', mpesa_deposit),
+path('mpesa/withdraw/', mpesa_withdraw),
+path('mpesa/transactions/', mpesa_transactions),
 ]
